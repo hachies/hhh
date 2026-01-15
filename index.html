@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="nl">
 <head>
     <meta charset="UTF-8">
     <title>Noah de helper</title>
@@ -8,13 +8,17 @@
 <body>
 
     <div id="webcam-container"></div>
-    <img id="image-display" src="my_images/neutraal.svg" width="220">
-    <p id="prediction"></p>
+
+    <img id="image-display" src="my_images/neutraal.svg">
+
+    <p id="prediction">Hoe voel je je nu?</p>
+
+    <button id="start-btn">Klik hier</button>
+    <button id="reset-btn">Klaar</button>
 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.2.0/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
     <script src="script.js"></script>
-
 
 </body>
 </html>
