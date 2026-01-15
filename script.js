@@ -1,10 +1,5 @@
 (async () => {
-    if (typeof tmImage === "undefined") {
-        console.error("tmImage is not loaded!");
-        return;
-    }
-
-    const URL = "https://teachablemachine.withgoogle.com/models/CXOUGlE8z/";
+    const URL = "https://teachablemachine.withgoogle.com/models/r4DrUzOYJ/";
 
     const images = {
         "Groen": "my_images/Groen.svg",
@@ -14,16 +9,19 @@
     };
 
     let model, webcam;
-    const confidenceThreshold = 0.9;
+    let isLocked = false;
+    let isStarted = false;
+
+    const confidenceThreshold = 0.7;
     const bufferSize = 5;
     const predictionBuffer = {};
-    let currentDetectedClass = null;
 
     const imageEl = document.getElementById("image-display");
     const predictionEl = document.getElementById("prediction");
+    const startBtn = document.getElementById("start-btn");
+    const resetBtn = document.getElementById("reset-btn");
 
-    // Startbeeld
-    imageEl.src = images["Neutral"];
+    imageEl.src = images["Neutraal"];
 
     webcam = new tmImage.Webcam(400, 300, true);
     await webcam.setup();
@@ -31,29 +29,29 @@
     document.getElementById("webcam-container").appendChild(webcam.canvas);
 
     model = await tmImage.load(URL + "model.json", URL + "metadata.json");
-    console.log("Model loaded!");
 
-    // Loop
     async function loop() {
-        webcam.update();
-        await predict();
+        if (isStarted && !isLocked) {
+            webcam.update();
+            await predict();
+        }
         requestAnimationFrame(loop);
     }
 
-    // Predict functie
     async function predict() {
-        const prediction = await model.predict(webcam.canvas);
+        const predictions = await model.predict(webcam.canvas);
 
-        // Hoogste kans
-        let highest = prediction.reduce((a, b) =>
+        let highest = predictions.reduce((a, b) =>
             a.probability > b.probability ? a : b
         );
 
         const className = highest.className;
         const prob = highest.probability;
 
-        // Stabiliteit met buffer
-        if (!predictionBuffer[className]) predictionBuffer[className] = [];
+        if (!predictionBuffer[className]) {
+            predictionBuffer[className] = [];
+        }
+
         predictionBuffer[className].push(prob);
         if (predictionBuffer[className].length > bufferSize) {
             predictionBuffer[className].shift();
@@ -61,26 +59,45 @@
 
         const avgProb =
             predictionBuffer[className].reduce((a, b) => a + b, 0) /
-            predictionBuffer[className].s;
+            predictionBuffer[className].length;
 
-        // Detectie
-        if (avgProb >= confidenceThreshold) {
-            if (currentDetectedClass !== className) {
-                currentDetectedClass = className;
+        if (avgProb >= confidenceThreshold && className !== "Neutraal") {
+            isLocked = true;
 
-                // SVG wisselen
-                imageEl.src = images[className] || images["Neutraal"];
+            imageEl.src = images[className];
+            predictionEl.innerText = `Ik voel me: ${className}`;
 
-                // Tekst bijwerken
-                predictionEl.innerText =
-                    `Gedetecteerd: ${className} (${Math.round(avgProb * 100)}%)`;
-            }
-        } else {
-            currentDetectedClass = null;
-            imageEl.src = images["Neutraal"];
-            predictionEl.innerText = "Geen detectie";
+            startBtn.style.display = "none";
+            resetBtn.style.display = "block";
         }
     }
+
+    startBtn.addEventListener("click", () => {
+        isStarted = true;
+        isLocked = false;
+
+        for (let key in predictionBuffer) {
+            predictionBuffer[key] = [];
+        }
+
+        predictionEl.innerText = "Houd een kaart voor de camera";
+        startBtn.style.display = "none";
+    });
+
+    resetBtn.addEventListener("click", () => {
+        isStarted = false;
+        isLocked = false;
+
+        for (let key in predictionBuffer) {
+            predictionBuffer[key] = [];
+        }
+
+        imageEl.src = images["Neutraal"];
+        predictionEl.innerText = "Druk op start";
+
+        resetBtn.style.display = "none";
+        startBtn.style.display = "block";
+    });
 
     loop();
 })();
